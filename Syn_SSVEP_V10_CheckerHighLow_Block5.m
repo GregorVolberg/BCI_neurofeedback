@@ -7,9 +7,8 @@
 % 6 mal präsentieren; sind 11*6 = 66 reversals für hohe frewquenz, 8*6 = 48
 % reversals für niedrige frequenz
 % davor 0.733 zusätzlich; marker erst nach erstem Präsentationsdurchlauf
-clear allmis miss0 change_startline alll
 
-subjectnr    = '01'; % zwei digits  
+
 
 textsize_pt = 35;
 numoftrials = 20;
@@ -50,28 +49,34 @@ beep = sin(1:8192*beepdur); % 8192 Hz default sampling rate
 squaresize = 40; %in pixel
 checkernum = 8; % must be even
 
-isReady = Datapixx('Open');
-trigTrain = zeros(1,4);
-Datapixx('StopAllSchedules'); % stop running schedules
-Datapixx('RegWrRd');    % Synchronize DATAPixx registers to local register cache
 
-% We'll make sure that all the TTL digital outputs are low before we start
-Datapixx('SetDoutValues', 0);
-Datapixx('RegWrRd');
 
 try
     Priority(1);
     HideCursor;
-    [window,rect]=Screen('OpenWindow',0); % 0 on laptop
+    [window,rect]=Screen('OpenWindow',2); % 0 on laptop
     [width, height]=Screen('WindowSize', window);
+    width
+    height
     hz=Screen('NominalFrameRate', window);
 
+    catch
+    Screen('CloseAll');
+    fprintf('We''ve hit an error.\n');
+    psychrethrow(psychlasterror);
+    fprintf('This last text never prints.\n');
+end
+
+sca
+
+width = 1680
+height = 1050
     % define PTB presenation times
     centdot   = [width/2-centcirclesize_pix/2, height/2-centcirclesize_pix/2, width/2+centcirclesize_pix/2, height/2+centcirclesize_pix/2];
     
     %colors
-    white=WhiteIndex(window); % pixel value for white
-    black=BlackIndex(window); % pixel value for black
+    white=255;%WhiteIndex(window); % pixel value for white
+    black=0;%BlackIndex(window); % pixel value for black
     gray = round((white - black)/2);
     lightgray = white - round((white - black)/4);
 
