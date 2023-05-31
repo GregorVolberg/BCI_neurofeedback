@@ -1,5 +1,5 @@
 % =======================
-% function[] = RFPc(run_mode)
+% function[] = BCIcar()
 % 1/60 = 0.016667 s
 % 11 frame =  1000/(11/60) = 5.4545 Hz (harmonics separated)
 % 7 frames =  1000/(7/60)  = 8.5714
@@ -9,6 +9,22 @@
 
 function[outmat] = BCIcar()
 
+rctSize       = 100;
+rctFromCenter = 150;
+rctFromBottom = 100;
+
+% stimuli
+[car, ~, alpha] = imread('./stim/car.png');
+car(:, :, 4) = alpha;
+[rock, ~, alpha] = imread('./stim/rock.png');
+rock(:, :, 4) = alpha;
+[tree, ~, alpha] = imread('./stim/tree2.png');
+tree(:, :, 4) = alpha;
+[fire, ~, alpha] = imread('./stim/fire.png');
+fire(:, :, 4) = alpha;
+
+
+% frequencies    
 f1 = 1000/(11/60); 
 f2 = 1000/(7/60);
 phi0    = 0;
@@ -26,6 +42,12 @@ Screen('Preference', 'SkipSyncTests', 1);
 % set up paths, responses, monitor, ...
 rootDir = pwd;
 addpath([rootDir, '/func']);
+rawdir = [rootDir, '/raw'];
+vp = input('Code für Teilnehmer/in (drei Zeichen, z. B. S01)? ', 's');
+     if length(vp)~=3 
+        error ('Wrong input!'); end
+
+outfilename = [vp, '_BCIcar.mat'];
 
 isOctave = check_octave;
 if isOctave
@@ -37,7 +59,6 @@ if ~exist(rawdir, 'dir')
 mkdir(rawdir);    
 end
 
-
 %[vp, response_mapping, instruct] = get_experimentInfo(run_mode, rootDir);
 [TastenVector] = prepare_responseKeys; % manual responses
 MonitorSelection = 3; % Dell Notebook is 6
@@ -48,19 +69,24 @@ try
     HideCursor;
     [win, ~] = Screen('OpenWindow', MonitorSpecs.ScreenNumber, 127); 
 
-    %Screen('BlendFunction', win, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    Screen('BlendFunction', win, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     [width, height] = Screen('WindowSize', win);
     hz = Screen('NominalFrameRate', win);
     
-   
-    Screen('Flip', win);
-    Screen('TextSize', win, 25); %fontsize 34
-    Screen('TextFont', win, 'Helvetica');
+%    Screen('Flip', win);
+%    Screen('TextSize', win, 25); %fontsize 34
+%    Screen('TextFont', win, 'Helvetica');
+    
+    % textures
+    carTexture  = Screen('MakeTexture', win, car);
+    rockTexture = Screen('MakeTexture', win, rock);
+    treeTexture = Screen('MakeTexture', win, tree);
+    fireTexture = Screen('MakeTexture', win, fire);
 
     % Construct and start response queue
     KbQueueCreate([],TastenVector);
     KbQueueStart;
-
+    
 %    get_luminance_from_sine(f1, 0/60, phi0)
     
 %    blocknum = 0;
@@ -68,50 +94,104 @@ try
 %    escpress = show_instruction(win, instTexture, run_mode, blocknum);
     
     % block loop
-    escpress=0;
+%    escpress=0;
     % left top right bottom
-    rctSize = 100;
-    rctFromCenter = 50;
-    rctFromBottom = 100;
+
     rectLeft  = [width/2 - rctFromCenter - rctSize, height - rctFromBottom - rctSize, ...
                 width/2 - rctFromCenter, height - rctFromBottom]';
     rectRight = [width/2 + rctFromCenter, height - rctFromBottom - rctSize, ...
                  width/2 + rctFromCenter + rctSize, height - rctFromBottom]';
-                
+
+    driverRect = [width/2 - rctSize/2, height - rctFromBottom - rctSize, ...
+                 width/2 + rctSize/2, height - rctFromBottom]';
+
+    obstacleRect = [width/2 - rctSize/2, 0, ...
+                    width/2 + rctSize/2, rctSize]';
     
     frame_number = 0;   
     
+    Screen('Flip', win);
+    WaitSecs(1);
+    ScreensPerSecond = 0.5;
+    ScreensPerSecondInc = 0.05;
+    pixelPace = round(height / hz * ScreensPerSecond);
+    pixelPaceAdd = round(height / hz * ScreensPerSecondInc);
     
-     FlipTime = Screen('Flip', win);
-     WaitSecs(1); 
+    KbQueueFlush(); pressed = 0;
+    rotationAngle = 180; % upright car
     
-     for frame_number = 0:300
-     %frame_number=k;
+    pixelIncrement = [0, pixelPace, 0, pixelPace; % move straight down
+                      pixelPace, pixelPace, pixelPace, pixelPace; % more right and down
+                      -pixelPace, pixelPace, -pixelPace, pixelPace;] % move left and down
+    pixelIncrementRow = 1; % default is straight on            
+
+    
+    %obstacleRun = obstacleRect;
+    obstacleRun = obstacleRect + [rctSize, 0, rctSize, 0]' * [0 1.25 2.5] * Sample([-1, 1]);
+    successRuns = 0;
+    trial = 1;
+    obstacle = Sample([rockTexture, treeTexture]);
+    while 1
+     frame_number = frame_number +1;
+     % Flicker patches
      colLeft = get_luminance_from_sine(f1, frame_number/60, phi0);
      Screen('FillRect', win, colLeft*255, rectLeft);
      colRight = get_luminance_from_sine(f2, frame_number/60, phi0);
      Screen('FillRect', win, colRight*255, rectRight);
+     % manual or brain response
+     [pressed, timeVector] = KbQueueCheck; 
+     if pressed
+     [pixelIncrementRow, esc_pressed, rotationAngle] = get_BCICarResponse(timeVector);
+     if esc_pressed
+       break; end
+     end
+     % draw textures
+     Screen('DrawTexture', win, carTexture, [], driverRect, rotationAngle);
+     Screen('DrawTextures', win, obstacle, [], obstacleRun);
+     obstacleRun = obstacleRun + pixelIncrement(pixelIncrementRow,:)';
+     boundingBox = [min(obstacleRun(1,:)), min(obstacleRun(2,:)), max(obstacleRun(3,:)), max(obstacleRun(4,:))];
      Screen('Flip', win);
+     if any(ClipRect(driverRect', boundingBox))
+         Screen('Flip', win);
+         Screen('DrawTexture', win, fireTexture, [], driverRect);
+         Screen('Flip', win);
+         WaitSecs(2);
+         frame_number = 0;
+         %obstacleRun = obstacleRect;
+         obstacleRun = obstacleRect + [rctSize, 0, rctSize, 0]' * [0 1.25 2.5] * Sample([-1, 1]);
+         rotationAngle = 180;
+         pixelIncrementRow = 1;
+         trial = trial  +1;
+         obstacle = Sample([rockTexture, treeTexture]);
+         pixelIncrement = [0, pixelPace, 0, pixelPace; % move straight down
+                      pixelPace, pixelPace, pixelPace, pixelPace; % more right and down
+                      -pixelPace, pixelPace, -pixelPace, pixelPace;] % move left and down
+       elseif obstacleRun(2) > height
+         rotationAngle = 180;
+         %obstacleRun = obstacleRect;
+         obstacleRun = obstacleRect + [rctSize, 0, rctSize, 0]' * [0 1.25 2.5] * Sample([-1, 1]);
+         pixelIncrementRow = 1;
+         successRuns = successRuns + 1;
+         trial = trial + 1; 
+         obstacle = Sample([rockTexture, treeTexture]);
+         pixelIncrement = pixelIncrement + sign(pixelIncrement)*pixelPaceAdd;
+       end
      end
    
-     % get response
-     %get_behavioralresponse(FlipTime, response_keys); % exit on ESC
-     
-    
- 
         
-    RFP = [];
-    RFP.vp      = vp;
-    RFP.mapping = response_mapping;
-    RFP.date    = tstring;
-    RFP.block   = blocknum;
-    RFP.outmat  = outmat;
-    RFP.experiment = 'RFPc';
-    RFP.hz         = hz;
-    RFP.resolution = [width, height];
-    RFP.pc         = getenv('COMPUTERNAME');
-    RFP.isOctave   = isOctave;
-    
+    BCIcar            = [];
+    BCIcar.vp         = vp;
+    BCIcar.date       = datestr(clock,30); 
+    BCIcar.experiment = 'BCIcar';
+    BCIcar.hz         = hz;
+    BCIcar.resolution = [width, height];
+    BCIcar.pc         = getenv('COMPUTERNAME');
+    BCIcar.isOctave   = isOctave;
+    BCIcar.numSucess  = sucessRuns;
+    BCIcar.numFrames  = frame_number;
+    BCIcar.trials     = trial;
+        
+    save([rawdir, outfilename], 'BCIcar', '-v7');
  
 catch
     Screen('CloseAll');
@@ -121,76 +201,6 @@ Screen('CloseAll');
 end
 
 %% =================== subfunctions =========
-
-function [key_code, RT, isRound] = get_behavioralresponse(FlipTime, response_keys)
-
-    KbQueueFlush(); pressed = 0; % flush queue
-    while ~pressed           
-         [pressed, timevec] = KbQueueCheck; 
-    end
-[KEYvec, RTvec] = GetBehavioralPerformance(timevec); % get RT; see subfunction
-key_code = KEYvec(1);
-RT = RTvec(1) - FlipTime;
-isRound = key_code == response_keys(1);
-end
-
-
-function [conmat] = get_conmat()
-% 6 harmonics * 2 nodd * 2 bfreq * 3 audiofrq = 72; 
-% bei 8 Durchgï¿½ngen pro bedingung: 576 trials, 48 pro RFP*audio
-
-nodd  = repelem([1 3 5 7 9 11], 96); % harmonics for sound wave
-wavef = repmat(repelem([0.5, 1.5], 48), 1, 6); % off harmonics for spikeness
-bfrq  = repmat(repelem([3, 4], 24), 1, 12); % freq of Rbase, 3 or 4
-%frq   = repmat(repelem([15, 25],12), 1, 24); % freq of RFP, 20 or 30 % 20 
-audi  = repmat(repelem([2000, 2200, 2400], 4), 1, 48); % audio frequency, 2000 2200 2400
-conmat = [1:length(nodd); nodd; wavef; bfrq; audi]';
-end
-
-
-function [snd] = get_sound(type, duration, Freq, fade, Fs)
-
-t         = (0:(1/Fs):duration-(1/Fs))';
-fade_samp = length((0:(1/Fs):fade-(1/Fs)));
-fadefunc  = ones(length(t), 1);
-fadefunc(1:fade_samp) = linspace(0, 1, fade_samp);
-fadefunc(end-fade_samp+1:end) = linspace(1, 0, fade_samp);
-
-if type == 1
-snd = sin(2*pi*Freq*t) .* fadefunc;
-elseif type == 2
-snd = sawtooth(2*pi*Freq*t, 1) .* fadefunc;
-else 
-    error('Unknown waveform specified in conmat');
-end
-snd = repmat(snd',2,1); % for PsychAudio
-end
-
-% function [snd] = generate_sounds(snd_order, duration, Freq, fade, betw_pause, Fs)
-% % nur zwei sounds, sin und tria
-% % order: 1 = sin zuerst, 2 = tria zuerst 
-% % s_length = lï¿½nge des sound samples, pro wellenform, in sec
-% % freq: zB 2000, 2250, 2500
-% % fade-in und fade-out, in sec
-% % pause: pause zwischen sounds, in sec
-% %Fs       = 44000;
-% 
-% t         = (0:(1/Fs):duration-(1/Fs))';
-% fade_samp = length((0:(1/Fs):fade-(1/Fs)));
-% fadefunc  = ones(length(t), 1);
-% fadefunc(1:fade_samp) = linspace(0, 1, fade_samp);
-% fadefunc(end-fade_samp+1:end) = linspace(1, 0, fade_samp);
-% 
-% sinwave = sin(2*pi*Freq*t) .* fadefunc;
-% sawwave = sawtooth(2*pi*Freq*t, 1) .* fadefunc;
-% paus    = zeros(Fs * betw_pause, 1);
-% if snd_order == 1
-%     snd = [sinwave; paus; sawwave];
-% elseif snd_order == 2
-%     snd = [sawwave; paus; sinwave];
-% end
-% 
-% end
 
 
 function [escpress] = show_instruction(windowPointer, instTexture, run_mode, blocknum)
@@ -210,15 +220,6 @@ function [escpress] = show_instruction(windowPointer, instTexture, run_mode, blo
        Screen('Flip', windowPointer);
 end
 
-function [KEYvec, RTvec] = GetBehavioralPerformance(TimeVector)
-indi=find(TimeVector); % wo ungleich 0, also responses
-[~, i]=sort(TimeVector(indi)); % sortiere nach Zeit
-KEYvec = indi(i); % key, aufsteigend nach Zeit
-RTvec  = TimeVector(indi(i)); % rt, aufsteigend nach Zeit, relativ zum letzte KbEventFlush
-% stop experiment if ESC is pressed
-    if ismember(KbName('ESCAPE'), KEYvec) %ESC-taste
-       sca; end
-end
 
 
 function [MonitorSpecs] = getMonitorSpecs(MonitorSelection)
