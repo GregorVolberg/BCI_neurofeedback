@@ -3,42 +3,27 @@
 % 1/60 = 0.016667 s
 % 11 frame =  1000/(11/60) = 5.4545 Hz (harmonics separated)
 % 7 frames =  1000/(7/60)  = 8.5714
-% use 12–18 Hz
-% 15 und 17.14 bei 120 Hz
-% https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3799619/
 % =======================
+function [] = SSVEP_Markus()
 
+expname = 'SSVEP_Markus.mat';    
 
-
-function[outmat] = BCIcar()
-
-rctSize       = 100;
-rctFromCenter = 150;
-rctFromBottom = 100;
-
-% stimuli
-[car, ~, alpha] = imread('./stim/car.png');
-car(:, :, 4) = alpha;
-[rock, ~, alpha] = imread('./stim/rock.png');
-rock(:, :, 4) = alpha;
-[tree, ~, alpha] = imread('./stim/tree2.png');
-tree(:, :, 4) = alpha;
-[fire, ~, alpha] = imread('./stim/fire.png');
-fire(:, :, 4) = alpha;
-
+rctSize       = 400;
+%rctFromCenter = 150;
+%rctFromBottom = 100;
 
 % frequencies    
 f1 = 1000/(11/60); 
 f2 = 1000/(7/60);
 phi0    = 0;
-##t = 0:1/60:1
-####% for demo
-##swave   = sin(2*pi*f1*t+phi0)
-##lumwave = (swave + 1)/2
-##plot(lumwave)
-##swave   = sin(2*pi*f2*t+phi0)
-##lumwave = (swave + 1)/2
-##hold on; plot(lumwave)
+% t = 0:1/60:1
+% % for demo
+% swave   = sin(2*pi*f1*t+phi0)
+% lumwave = (swave + 1)/2
+% plot(lumwave)
+% swave   = sin(2*pi*f2*t+phi0)
+% lumwave = (swave + 1)/2
+% hold on; plot(lumwave)
 
 Screen('Preference', 'SkipSyncTests', 1);
 
@@ -50,7 +35,8 @@ vp = input('Code für Teilnehmer/in (drei Zeichen, z. B. S01)? ', 's');
      if length(vp)~=3 
         error ('Wrong input!'); end
 
-outfilename = [vp, '_BCIcar.mat'];
+
+outfilename = [vp, '_', expname];
 
 isOctave = check_octave;
 if isOctave
@@ -67,6 +53,9 @@ end
 MonitorSelection = 3; % Dell Notebook is 6
 MonitorSpecs = getMonitorSpecs(MonitorSelection); % subfunction, gets specification for monitor
 
+patternSelect = 2; %1 = uniform, 2 = checker, 3 = grating 
+
+
 try
     Priority(1);
     HideCursor;
@@ -76,71 +65,66 @@ try
     [width, height] = Screen('WindowSize', win);
     hz = Screen('NominalFrameRate', win);
     
-%    Screen('Flip', win);
-%    Screen('TextSize', win, 25); %fontsize 34
-%    Screen('TextFont', win, 'Helvetica');
     
-    % textures
-    carTexture  = Screen('MakeTexture', win, car);
-    rockTexture = Screen('MakeTexture', win, rock);
-    treeTexture = Screen('MakeTexture', win, tree);
-    fireTexture = Screen('MakeTexture', win, fire);
+% % textures
+% carTexture  = Screen('MakeTexture', win, car);
+% rockTexture = Screen('MakeTexture', win, rock);
+% treeTexture = Screen('MakeTexture', win, tree);
+% fireTexture = Screen('MakeTexture', win, fire);
 
-    % Construct and start response queue
+% Construct and start response queue
     KbQueueCreate([],TastenVector);
     KbQueueStart;
     
-%    get_luminance_from_sine(f1, 0/60, phi0)
-    
-%    blocknum = 0;
-%    instTexture = Screen('MakeTexture', win, instruct);
-%    escpress = show_instruction(win, instTexture, run_mode, blocknum);
-    
-    % block loop
-%    escpress=0;
-    % left top right bottom
 
-    rectLeft  = [width/2 - rctFromCenter - rctSize, height - rctFromBottom - rctSize, ...
-                width/2 - rctFromCenter, height - rctFromBottom]';
-    rectRight = [width/2 + rctFromCenter, height - rctFromBottom - rctSize, ...
-                 width/2 + rctFromCenter + rctSize, height - rctFromBottom]';
+driverRect = [width/2 - rctSize/2, height/2 - rctSize/2, ...
+                 width/2 + rctSize/2, height/2 + rctSize/2]';
 
-    driverRect = [width/2 - rctSize/2, height - rctFromBottom - rctSize, ...
-                 width/2 + rctSize/2, height - rctFromBottom]';
+% checker
+lefttop = driverRect(1:2);
+siz = rctSize;
+numCheckers = 4;
+left = lefttop(1):siz/numCheckers:(siz+lefttop(1));
+top  = lefttop(2):siz/numCheckers:(siz+lefttop(2));
+oneRow = [left(1:numCheckers); top(1:numCheckers); left(2:(numCheckers+1))-1; top(2:(numCheckers+1))-1];
 
-    obstacleRect = [width/2 - rctSize/2, 0, ...
-                    width/2 + rctSize/2, rctSize]';
-    
+allRows = [];
+for m = 0:(numCheckers-1)
+    newRow = oneRow + [siz/numCheckers 0 siz/numCheckers 0]' * m;
+    allRows = [allRows, newRow];
+end
+
+checkertmp  = reshape(repmat([1 0], 1, (numCheckers^2)/2), numCheckers, numCheckers)'; 
+checkerrev  = repmat([1 -1], 1, (numCheckers)/2);
+checkerplus = repmat([0 1], 1, (numCheckers)/2);
+checkerCol1 = reshape((checkertmp.* checkerrev' + checkerplus')', 1, numCheckers^2);
+checkerCol2 = abs(checkerCol1 + -1);
+             
+switch patternSelect
+    case 1
+        pattern = driverRect;
+        lumVec  = 1; 
+    case 2
+        pattern = allRows;
+        lumVec = checkerCol1;
+end
+
     frame_number = 0;   
     
     Screen('Flip', win);
     WaitSecs(1);
-    ScreensPerSecond = 0.5;
-    ScreensPerSecondInc = 0.05;
-    pixelPace = round(height / hz * ScreensPerSecond);
-    pixelPaceAdd = round(height / hz * ScreensPerSecondInc);
     
-    KbQueueFlush(); pressed = 0;
-    rotationAngle = 180; % upright car
-    
-    pixelIncrement = [0, pixelPace, 0, pixelPace; % move straight down
-                      pixelPace, pixelPace, pixelPace, pixelPace; % more right and down
-                      -pixelPace, pixelPace, -pixelPace, pixelPace;] % move left and down
-    pixelIncrementRow = 1; % default is straight on            
-
+     KbQueueFlush(); pressed = 0;
     
     %obstacleRun = obstacleRect;
-    obstacleRun = obstacleRect + [rctSize, 0, rctSize, 0]' * [0 1.25 2.5] * Sample([-1, 1]);
-    successRuns = 0;
-    trial = 1;
-    obstacle = Sample([rockTexture, treeTexture]);
     while 1
      frame_number = frame_number +1;
      % Flicker patches
-     colLeft = get_luminance_from_sine(f1, frame_number/60, phi0);
-     Screen('FillRect', win, colLeft*255, rectLeft);
-     colRight = get_luminance_from_sine(f2, frame_number/60, phi0);
-     Screen('FillRect', win, colRight*255, rectRight);
+%     colLeft = get_luminance_from_sine(f1, frame_number/60, phi0);
+%     Screen('FillRect', win, colLeft*255, driverRect);
+     %colRight = get_luminance_from_sine(f2, frame_number/60, phi0);
+     colRight = get_luminance_from_sine_new(f2, frame_number/60, phi0, patternSelect);
+     Screen('FillRects', win, lumVec*colRight*255, pattern);
      % manual or brain response
      [pressed, timeVector] = KbQueueCheck; 
      if pressed
@@ -148,53 +132,20 @@ try
      if esc_pressed
        break; end
      end
-     % draw textures
-     Screen('DrawTexture', win, carTexture, [], driverRect, rotationAngle);
-     Screen('DrawTextures', win, obstacle, [], obstacleRun);
-     obstacleRun = obstacleRun + pixelIncrement(pixelIncrementRow,:)';
-     boundingBox = [min(obstacleRun(1,:)), min(obstacleRun(2,:)), max(obstacleRun(3,:)), max(obstacleRun(4,:))];
      Screen('Flip', win);
-     if any(ClipRect(driverRect', boundingBox))
-         Screen('Flip', win);
-         Screen('DrawTexture', win, fireTexture, [], driverRect);
-         Screen('Flip', win);
-         WaitSecs(2);
-         frame_number = 0;
-         %obstacleRun = obstacleRect;
-         obstacleRun = obstacleRect + [rctSize, 0, rctSize, 0]' * [0 1.25 2.5] * Sample([-1, 1]);
-         rotationAngle = 180;
-         pixelIncrementRow = 1;
-         trial = trial  +1;
-         obstacle = Sample([rockTexture, treeTexture]);
-         pixelIncrement = [0, pixelPace, 0, pixelPace; % move straight down
-                      pixelPace, pixelPace, pixelPace, pixelPace; % more right and down
-                      -pixelPace, pixelPace, -pixelPace, pixelPace;] % move left and down
-       elseif obstacleRun(2) > height
-         rotationAngle = 180;
-         %obstacleRun = obstacleRect;
-         obstacleRun = obstacleRect + [rctSize, 0, rctSize, 0]' * [0 1.25 2.5] * Sample([-1, 1]);
-         pixelIncrementRow = 1;
-         successRuns = successRuns + 1;
-         trial = trial + 1; 
-         obstacle = Sample([rockTexture, treeTexture]);
-         pixelIncrement = pixelIncrement + sign(pixelIncrement)*pixelPaceAdd;
-       end
      end
    
         
-    BCIcar            = [];
-    BCIcar.vp         = vp;
-    BCIcar.date       = datestr(clock,30); 
-    BCIcar.experiment = 'BCIcar';
-    BCIcar.hz         = hz;
-    BCIcar.resolution = [width, height];
-    BCIcar.pc         = getenv('COMPUTERNAME');
-    BCIcar.isOctave   = isOctave;
-    BCIcar.numSucess  = sucessRuns;
-    BCIcar.numFrames  = frame_number;
-    BCIcar.trials     = trial;
+    SSVEP_Markus            = [];
+    SSVEP_Markus.vp         = vp;
+    SSVEP_Markus.date       = datestr(clock,30); 
+    SSVEP_Markus.experiment = expname;
+    SSVEP_Markus.hz         = hz;
+    SSVEP_Markus.resolution = [width, height];
+    SSVEP_Markus.pc         = getenv('COMPUTERNAME');
+    SSVEP_Markus.isOctave   = isOctave;
         
-    save([rawdir, outfilename], 'BCIcar', '-v7');
+    save([rawdir, outfilename], 'SSVEP_Markus', '-v7');
  
 catch
     Screen('CloseAll');
