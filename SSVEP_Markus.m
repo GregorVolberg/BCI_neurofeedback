@@ -12,10 +12,16 @@ rctSize       = 400;
 %rctFromCenter = 150;
 %rctFromBottom = 100;
 
+conmat(1,:) = repelem([1:4], 24);
+conmat(2,:) = repelem([1,2], 24*2);
+conmat(3,:) = repmat(repelem([1,2], 24), 1, 2);
+conmat = Shuffle(conmat', 2);
+
 % frequencies    
 f1 = 1000/(11/60); 
 f2 = 1000/(7/60);
 phi0    = 0;
+freqs = [f1, f2];
 % t = 0:1/60:1
 % % for demo
 % swave   = sin(2*pi*f1*t+phi0)
@@ -24,6 +30,31 @@ phi0    = 0;
 % swave   = sin(2*pi*f2*t+phi0)
 % lumwave = (swave + 1)/2
 % hold on; plot(lumwave)
+vp = input('Code für Teilnehmer/in (drei Zeichen, z. B. S01)? ', 's');
+     if length(vp)~=3 
+        error ('Wrong input!'); end
+
+
+outfilename = [vp, '_', expname];
+
+
+%% initialize LPT port for marker write-out
+if exist('io64')
+    ioObj  = io64;
+    status = io64(ioObj); % status 0 = OK; MUST be performed for initializing IO driver
+    %LPT1   = hex2dec('D050'); % the address of LPT1 in EEG lab
+    LPT1   = hex2dec('E050'); % the address of LPT1 in EEG lab
+    pushMarker = @(markerValue) io64(ioObj, LPT1, markerValue); 
+    % address = hex2dec('378');  
+else
+    fprintf('\n\nNo parallel port driver for EEG markers installed!\nUsing screen output instead.')
+    fprintf('\n********** Press any key to confirm *************');
+    KbWait([], 2);
+    %pushMarker = @(markerValue) Beeper(400 + markerValue);
+    pushMarker = @(markerValue) fprintf('\nMarker value %u', markerValue);
+end
+
+
 
 Screen('Preference', 'SkipSyncTests', 1);
 
@@ -31,12 +62,7 @@ Screen('Preference', 'SkipSyncTests', 1);
 rootDir = pwd;
 addpath([rootDir, '/func']);
 rawdir = [rootDir, '/raw'];
-vp = input('Code für Teilnehmer/in (drei Zeichen, z. B. S01)? ', 's');
-     if length(vp)~=3 
-        error ('Wrong input!'); end
 
-
-outfilename = [vp, '_', expname];
 
 isOctave = check_octave;
 if isOctave
@@ -50,10 +76,10 @@ end
 
 %[vp, response_mapping, instruct] = get_experimentInfo(run_mode, rootDir);
 [TastenVector] = prepare_responseKeys; % manual responses
-MonitorSelection = 3; % Dell Notebook is 6
+MonitorSelection = 4;%3; % Dell Notebook is 6
 MonitorSpecs = getMonitorSpecs(MonitorSelection); % subfunction, gets specification for monitor
 
-patternSelect = 2; %1 = uniform, 2 = checker, 3 = grating 
+patternSelect = 1; %1 = uniform, 2 = checker, 3 = grating 
 
 
 try
@@ -84,23 +110,34 @@ driverRect = [width/2 - rctSize/2, height/2 - rctSize/2, ...
 lefttop = driverRect(1:2);
 siz = rctSize;
 numCheckers = 4;
-left = lefttop(1):siz/numCheckers:(siz+lefttop(1));
-top  = lefttop(2):siz/numCheckers:(siz+lefttop(2));
-oneRow = [left(1:numCheckers); top(1:numCheckers); left(2:(numCheckers+1))-1; top(2:(numCheckers+1))-1];
+left   = lefttop(1):siz/numCheckers:(siz+lefttop(1));
+top    = repmat(lefttop(2), 1, numel(left)); %:siz/numCheckers:(siz+lefttop(2));
+right  = left(2:(numCheckers+1))-1;
+bottom = top + siz/numCheckers-1;
+oneRow = [left(1:numCheckers); top(1:numCheckers); right; bottom(1:numCheckers)];
 
 allRows = [];
 for m = 0:(numCheckers-1)
-    newRow = oneRow + [siz/numCheckers 0 siz/numCheckers 0]' * m;
-    allRows = [allRows, newRow];
+   newRow = oneRow + [0 siz/numCheckers 0 siz/numCheckers]' * m;
+   allRows = [allRows, newRow];
 end
 
 checkertmp  = reshape(repmat([1 0], 1, (numCheckers^2)/2), numCheckers, numCheckers)'; 
 checkerrev  = repmat([1 -1], 1, (numCheckers)/2);
 checkerplus = repmat([0 1], 1, (numCheckers)/2);
 checkerCol1 = reshape((checkertmp.* checkerrev' + checkerplus')', 1, numCheckers^2);
-checkerCol2 = abs(checkerCol1 + -1);
-             
-switch patternSelect
+
+for con = 1:size(conmat, 1)
+
+    Screen('Flip', win);
+    Screen('gluDisk', win, [0 0 0], width/2, height/2, 5);
+    Screen('Flip', win);
+    WaitSecs(4);
+    Screen('gluDisk', win, [255 255 255], width/2, height/2, 5);
+    Screen('Flip', win);
+    WaitSecs(2);
+    
+switch conmat(con, 2)
     case 1
         pattern = driverRect;
         lumVec  = 1; 
@@ -109,22 +146,26 @@ switch patternSelect
         lumVec = checkerCol1;
 end
 
-    frame_number = 0;   
+    frame_number = 4.2 * hz;   
     
     Screen('Flip', win);
-    WaitSecs(1);
+    %WaitSecs(1);
     
      KbQueueFlush(); pressed = 0;
     
     %obstacleRun = obstacleRect;
-    while 1
-     frame_number = frame_number +1;
+    
+    Screen('Flip', win);
+    pushMarker(conmat(con,1)); 
+    while frame_number
+     frame_number = frame_number -1;
      % Flicker patches
 %     colLeft = get_luminance_from_sine(f1, frame_number/60, phi0);
 %     Screen('FillRect', win, colLeft*255, driverRect);
      %colRight = get_luminance_from_sine(f2, frame_number/60, phi0);
-     colRight = get_luminance_from_sine_new(f2, frame_number/60, phi0, patternSelect);
-     Screen('FillRects', win, lumVec*colRight*255, pattern);
+     colRight = get_luminance_from_sine(freqs(conmat(con,3)), frame_number/60, phi0);
+     
+     Screen('FillRect', win, repmat(abs(round(lumVec - (1-colRight)))*255,3,1), pattern);
      % manual or brain response
      [pressed, timeVector] = KbQueueCheck; 
      if pressed
@@ -133,8 +174,10 @@ end
        break; end
      end
      Screen('Flip', win);
-     end
-   
+    end
+    Screen('Flip', win); 
+    WaitSecs(1);
+end
         
     SSVEP_Markus            = [];
     SSVEP_Markus.vp         = vp;
@@ -144,6 +187,7 @@ end
     SSVEP_Markus.resolution = [width, height];
     SSVEP_Markus.pc         = getenv('COMPUTERNAME');
     SSVEP_Markus.isOctave   = isOctave;
+    SSVEP_Markus.conmat     = conmat;
         
     save([rawdir, outfilename], 'SSVEP_Markus', '-v7');
  
