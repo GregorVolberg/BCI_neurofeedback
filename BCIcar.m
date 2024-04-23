@@ -31,14 +31,14 @@ fire(:, :, 4) = alpha;
 f1 = 1000/(11/60); 
 f2 = 1000/(7/60);
 phi0    = 0;
-##t = 0:1/60:1
-####% for demo
-##swave   = sin(2*pi*f1*t+phi0)
-##lumwave = (swave + 1)/2
-##plot(lumwave)
-##swave   = sin(2*pi*f2*t+phi0)
-##lumwave = (swave + 1)/2
-##hold on; plot(lumwave)
+% for demo
+t = 0:1/120:1
+swave   = sin(2*pi*f1*t+phi0)
+lumwave = (swave + 1)/2
+plot(lumwave)
+swave   = sin(2*pi*f2*t+phi0)
+lumwave = (swave + 1)/2
+hold on; plot(lumwave)
 
 Screen('Preference', 'SkipSyncTests', 1);
 
