@@ -26,7 +26,7 @@ Brainflow ist eine Bibliothek zur Aquise und Verarbeitung von Daten von Biosenso
 ## R bindings
 R hat kein eigenes Paket für die brainflow. Es ist aber möglich, von R aus die soeben installierte Python-Bibliothek zu nutzen. Dazu muss man zuerst selbst ein R-Paket erstellen und dieses Paket instalieren. Ich habe bereits ein Paket erstellt. Sie können es von der R-Kommandozeile installieren mit
 library(devtools)
-install_github("gregorvolberg/brainflow")
+install_github("GregorVolberg/brainflow") # volle Adresse ist https://github.com/GregorVolberg/brainflow
 
 dann, zu Beginn eines Skrupt, die Bibliothek einbinden
 library(brainflow)
