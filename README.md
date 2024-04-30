@@ -60,6 +60,13 @@ Alternativ kann das Environment mit nachfolgendem Aufruf angegeben werden.
 
     Sys.env(RETICULATE_PYTHON_ENV = "Pfad/zu/Environment")
 
+Als Test können Sie die folgenden Zeilen versuchen. Der erste Aufruf einer Funktion aus der Bibliothek dauert recht lange. Möglicherweise öffnet sich ein Fenster, in dem reticulate fragt, ob eine spezielles Environment voreingestellt werden soll. Wenn die Installation korrekt ist, sollte es keine Fehlermeldung geben.
+
+    library(brainflow)
+    params <- brainflow_python$BrainFlowInputParams()
+
+
+
 # Nützliche Links (intern)
 
 R-Paket erstellen:
