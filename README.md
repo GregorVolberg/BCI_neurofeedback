@@ -42,21 +42,35 @@ Das Paket brainflow soll auf dem eigenen System erstellt und dann installiert we
 ## Starten von brainflow in R  
 Wenn die Installation erfolgreich war, reicht es aus, zu Beginn eines Skripts in R die Bibliothek brainflow zu importieren.
 
-    library("brainblow")
+    library("brainflow")
 
 Möglicherweise nutzen Sie in Python verschiedene "Environments". Falls ja, binden Sie im R-Skript zuerst reticulate ein und wechseln in das Environment, in dem die python-bibliothek brainflow installiert ist. Zum Beispiel:
 
     library(reticulate)
     use_virtualenv("myEnvironment")
-    library("brainblow")
+    library("brainflow")
     
 oder mit der conda-Distribution:
 
     library(reticulate)
     use_condaenv("myEnvironment")
-    library("brainblow")
+    library("brainflow")
 
-    use_condaenv()
+Alternativ kann das Environment mit nachfolgendem Aufruf angegeben werden.
+
+    Sys.env(RETICULATE_PYTHON_ENV = "Pfad/zu/Environment")
+
+# Nützliche Links (intern)
+
+R-Paket erstellen:
+https://ourcodingclub.github.io/tutorials/writing-r-package/
+
+zzz.R - File
+https://stackoverflow.com/questions/21448904/r-packages-what-is-the-file-zzz-r-used-for
+
+R-Paket auf gibhub bereitstellen:
+https://medium.com/@abertozz/turning-an-r-package-into-a-github-repo-aeaebacfe1c
+    
     
 <!--, in der conda-Installation  Sie zuerst in das    
 Kommandos aufzurufen, sondern setzt auf der Python-Installation auf. 
