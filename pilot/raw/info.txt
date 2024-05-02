@@ -1,9 +1,0 @@
-Hallo Gregor,
-ich sende dir im Anhang mal Daten, die ich von meiner Mitbewohnerin erhoben habe.
-Die Baseline Daten habe ich ohne Instruktionen in ruhiger Umgebung um ca 21 Uhr erhoben, Augen waren geschlossen. (Dateiname = OpenBCI-RAW-2021-05-17_21-22-27_Baseline).
-Die zweite Datei (OpenBCI-RAW-2021-05-17_21-32-27_FB&BB) wurde mit Feedback und Binaural Beats erhoben, direkt nach dem Baseline Scan. Das heißt, ich habe ihr Kopfhörer aufgesetzt und Binaurale Beats mit 10Hz abgespielt, sie sollte sich dabei im OpenBCI Gui darauf konzentrieren, den Balken mit der AlphaPower nach oben zu treiben bzw dort zu halten (was ihr sehr schwerfiel).
-Die dritte Datei (OpenBCI-RAW-2021-05-19_12-27-44_FB&BB) habe ich mit drei Tagen Abstand (um etwa 12:30 Uhr mittags) aufgenommen, prozedere war identisch zur zweiten Aufnahme, also Feedback und Binaural Beats wurden implementiert.
-Leider gab es bei der Aufnahme Probleme (womöglich wegen ihrer Haare), weshalb nicht alle Elektroden verlässlich aufgezeichnet haben. Da uns ja hauptsächlich die frontalen Elektroden interessieren und die prima funktioniert haben, habe ich mich entschlossen beim Feeback auch nur frontale Alphapower zurückzumelden (die anderen Kanäle kann man einfach ausschalten für dieses Widget)
-Ich bin gespannt, ob die Daten irgendwas hergeben, bin aber auch ein wenig skeptisch um ehrlich zu sein. Insgesamt ist es glaube ich auch ein Problem, die Baseline mit geschlossenen Augen zu erheben, weil wahrscheinlich alleine durch die visuellen Reize eine höhere Aktivität zu erwarten mit offenen ist (?).
-Viele Grüße
-Dominik
