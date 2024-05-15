@@ -421,27 +421,41 @@ install_github(&quot;GregorVolberg/brainflow&quot;) </code></pre>
 <h2>Starten von brainflow in R</h2>
 <p>Wenn die Installation erfolgreich war, reicht es aus, zu Beginn eines
 Skripts in R die Bibliothek brainflow zu importieren.</p>
-<pre><code>library(&quot;brainblow&quot;)</code></pre>
+<pre><code>library(&quot;brainflow&quot;)</code></pre>
 <p>Möglicherweise nutzen Sie in Python verschiedene “Environments”.
 Falls ja, binden Sie im R-Skript zuerst reticulate ein und wechseln in
 das Environment, in dem die python-bibliothek brainflow installiert ist.
 Zum Beispiel:</p>
 <pre><code>library(reticulate)
 use_virtualenv(&quot;myEnvironment&quot;)
-library(&quot;brainblow&quot;)</code></pre>
+library(&quot;brainflow&quot;)</code></pre>
 <p>oder mit der conda-Distribution:</p>
 <pre><code>library(reticulate)
 use_condaenv(&quot;myEnvironment&quot;)
-library(&quot;brainblow&quot;)
-
-use_condaenv()</code></pre>
+library(&quot;brainflow&quot;)</code></pre>
+<p>Alternativ kann das Environment mit nachfolgendem Aufruf angegeben
+werden.</p>
+<pre><code>Sys.env(RETICULATE_PYTHON_ENV = &quot;Pfad/zu/Environment&quot;)</code></pre>
+<p>Als Test können Sie die folgenden Zeilen versuchen. Der erste Aufruf
+einer Funktion aus der Bibliothek dauert recht lange. Möglicherweise
+öffnet sich ein Fenster, in dem reticulate fragt, ob eine spezielles
+Environment voreingestellt werden soll. Wenn die Installation korrekt
+ist, sollte es keine Fehlermeldung geben.</p>
+<pre><code>library(brainflow)
+params &lt;- brainflow_python$BrainFlowInputParams()</code></pre>
+</div>
+</div>
+<div id="nützliche-links-intern" class="section level1">
+<h1>Nützliche Links (intern)</h1>
+<p>R-Paket erstellen: <a href="https://ourcodingclub.github.io/tutorials/writing-r-package/" class="uri">https://ourcodingclub.github.io/tutorials/writing-r-package/</a></p>
+<p>zzz.R - File <a href="https://stackoverflow.com/questions/21448904/r-packages-what-is-the-file-zzz-r-used-for" class="uri">https://stackoverflow.com/questions/21448904/r-packages-what-is-the-file-zzz-r-used-for</a></p>
+<p>R-Paket auf gibhub bereitstellen: <a href="https://medium.com/@abertozz/turning-an-r-package-into-a-github-repo-aeaebacfe1c" class="uri">https://medium.com/@abertozz/turning-an-r-package-into-a-github-repo-aeaebacfe1c</a></p>
 <!--, in der conda-Installation  Sie zuerst in das    
 Kommandos aufzurufen, sondern setzt auf der Python-Installation auf. 
 [- Ein Paket "brainflow" erstellen mit R API bindings ('zzz.R')]
 
 Mein Paket brainflow von Github installieren
 https://ourcodingclub.github.io/tutorials/writing-r-package/-->
-</div>
 <div id="setup-elektroden" class="section level2">
 <h2>Setup Elektroden</h2>
 <p>(+ 2 für Referenz und Erde)</p>
