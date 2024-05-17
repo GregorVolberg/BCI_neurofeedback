@@ -20,41 +20,34 @@ Um die GUI zu installieren, laden Sie die passende Software von der OpenBCI webp
 
 ## Brainflow
 
-Brainflow ist eine Bibliothek zur Akquise und Verarbeitung von Daten von Biosensoren. Die Bibliothek kann an verschiedene Programmiersprachen angebunden werden, darunter Matlab und Python. Für brainflow gibt es kein eigenes R-Paket. Es ist aber möglich, von R aus die Python-Bibliothek anzusprechen. Dazu müssen zuerst Python und die Python-Bibliothek von brainflow installiert werden.
+Brainflow ist eine Bibliothek zur Akquise und Verarbeitung von Daten von Biosensoren. Die Bibliothek kann an verschiedene Programmiersprachen angebunden werden, darunter Matlab und Python. Für brainflow gibt es kein eigenes R-Paket. Es ist aber möglich, von R aus die Python-Bibliothek anzusprechen. Dazu müssen Python und die Python-Bibliothek von brainflow installiert werden. Beides können Sie in RStudio durchführen.
 
-### Python
-
-Für die Installation von Python die Software python 3.11 herunterladen und installieren, <https://www.python.org/downloads/release/python-3110/> . Bei der Installation das Häkchen setzen bei "add to PATH", dann die Costum installation wählen: Die optionalen Bestandteile "Dokumentation" und "tcl/tk" müssen nicht installiert werden.
-
-Für die Installation von brainflow unter Python die Eingabeaufforderung öffnen und eingeben:
+Dazu lassen Sie das folgende Skript in RStudio laufen. Bei der Installation werden zwei R-Pakete von CRAN installiert. Reticulate sorgt für die Kommunikation mit Python, devtools ist für die nachfolgende Installation des brainflow-Pakets erforderlich. Das Paket brainflow muss selbst erstellt und installiert werden. Ich habe bereits ein Paket erstellt, es wird mit dem Skript von Github aus installiert.
 
 ```         
-python -m pip install brainflow
-```
-
-### R bindings
-
-In R müssen Sie die Pakete reticulate und devtools von CRAN installieren. Reticulate sorgt für die Kommunikation mit Python, devtools ist für die nachfolgende Installation des brainflow-Pakets erforderlich.
-
-```         
-install.packages("devtools")
 install.packages("reticulate")
-```
+install.packages("devtools")
 
-Das Paket brainflow soll auf dem eigenen System erstellt und dann installiert werden. Ich habe bereits ein Paket erstellt, Sie können es mit dem folgenden Code installieren.
+library(reticulate)
+install_python()
+py_install("brainflow")
 
-```         
 library(devtools)
-install_github("GregorVolberg/brainflow") 
+install_github('GregorVolberg/brainflow')
 ```
 
 ## Starten von brainflow in R
 
 Wenn die Installation erfolgreich war, reicht es aus, zu Beginn eines Skripts in R die Bibliothek brainflow zu importieren.
 
+Als Test können Sie die folgenden Zeilen versuchen. Der erste Aufruf einer Funktion aus der Bibliothek dauert recht lange. Möglicherweise öffnet sich ein Fenster, in dem reticulate fragt, ob eine spezielles Environment voreingestellt werden soll. Wenn die Installation korrekt ist, sollte es keine Fehlermeldung geben.
+
 ```         
-library("brainflow")
+library(brainflow)
+params <- brainflow_python$BrainFlowInputParams()
 ```
+
+## Fehlerbehebung
 
 Möglicherweise nutzen Sie in Python verschiedene "Environments". Falls ja, binden Sie im R-Skript zuerst reticulate ein und wechseln in das Environment, in dem die python-bibliothek brainflow installiert ist. Zum Beispiel:
 
@@ -78,12 +71,6 @@ Alternativ kann das Environment mit nachfolgendem Aufruf angegeben werden.
 Sys.env(RETICULATE_PYTHON_ENV = "Pfad/zu/Environment")
 ```
 
-Als Test können Sie die folgenden Zeilen versuchen. Der erste Aufruf einer Funktion aus der Bibliothek dauert recht lange. Möglicherweise öffnet sich ein Fenster, in dem reticulate fragt, ob eine spezielles Environment voreingestellt werden soll. Wenn die Installation korrekt ist, sollte es keine Fehlermeldung geben.
-
-```         
-library(brainflow)
-params <- brainflow_python$BrainFlowInputParams()
-```
 
 # Nützliche Links (intern)
 
