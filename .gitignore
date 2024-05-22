@@ -1,1 +1,15 @@
 .Rproj.user/**
+SoSe2023
+.Rproj.user
+.csv
+
+# History files
+.Rhistory
+.Rapp.history
+
+# Session Data files
+.RData
+.RDataTmp
+
+# User-specific files
+.Ruserdata
