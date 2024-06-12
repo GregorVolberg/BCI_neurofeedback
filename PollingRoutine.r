@@ -1,8 +1,7 @@
 library(tidyverse)
 library(brainflow) 
 library(DescTools)
-
-#library(ggfortify)
+library(signal)
 
 source('./helperFunctions.r')
 
@@ -18,10 +17,13 @@ myboard$release_all_sessions()
 myboard$prepare_session() # start session
 myboard$start_stream()    # start stream
 
+### polling 
 previousSample <- myboard$get_board_data_count()
 invisible(myboard$get_board_data()) # empty buffer
 polls <- 0
 npolls <- 10 # 
+begsample <- NULL
+endsample <- NULL
 
 while(polls < npolls){
   polls <- polls + 1
@@ -31,18 +33,15 @@ while(polls < npolls){
     Sys.sleep(0.02) # wait until buffer is filled
    }
   poll <- myboard$get_board_data(as.integer(boardinfo$pollnum))
-  eeg  <- poll2eeg(poll, boardinfo)
-  #print(paste0('Poll #', npolls, ', start ', begsample[npolls], ', stop ', endsample[npolls], ', count ', myboard$get_board_data_count()))
-  plotEEG(eeg, boardinfo, polls)
+    ##### routines within the loop
+    eeg  <- poll[c(boardinfo$eegchannels, boardinfo$markerchannel),]
+    eeg  <- demean(eeg)
+    eeg <- lpfilt(eeg, boardinfo)
+    plotEEG(eeg, boardinfo, polls)
+    #####
   previousSample <- endsample[polls]
 }
 
 myboard$stop_stream()     # stop stream
 myboard$release_session() # end session
 
-
-# or autoplot(eeg)
-autoplot(eeg, 
-  columns = params$channames,
-  facets = TRUE) + 
-  theme_bw()
