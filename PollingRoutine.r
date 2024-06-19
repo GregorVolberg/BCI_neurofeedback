@@ -1,6 +1,7 @@
 library(tidyverse)
 library(brainflow) 
 library(DescTools)
+library(infotheo)
 library(signal)
 
 source('./helperFunctions.r')
@@ -11,7 +12,7 @@ params$file         <- "scene_aff_visual_2024-05-07-103106.csv"
 params$master_board <- brainflow_python$BoardIds$CYTON_BOARD
 myboard             <- brainflow_python$BoardShim(Id, params) 
 
-boardinfo <- setBoardInfo() # see helper functions
+boardinfo <- setBoardInfo(1) # see helper functions
 
 myboard$release_all_sessions()
 myboard$prepare_session() # start session
@@ -24,6 +25,9 @@ polls <- 0
 npolls <- 10 # 
 begsample <- NULL
 endsample <- NULL
+distAndProb <- list(dist_EKS  <- NULL,
+                    artfct    <- NULL)
+artfct_thresh <- 0.8
 
 while(polls < npolls){
   polls <- polls + 1
@@ -37,7 +41,9 @@ while(polls < npolls){
     eeg  <- poll[c(boardinfo$eegchannels, boardinfo$markerchannel),]
     eeg  <- demean(eeg)
     eeg <- lpfilt(eeg, boardinfo)
-    plotEEG(eeg, boardinfo, polls)
+    distAndProb <- f_prob_artifact2(eeg, distAndProb[[1]], artfct_thresh, polls)
+    print(round(distAndProb[[2]]$p_artifact, 3))
+    plotEEG(eeg, boardinfo, polls, isArtifact = distAndProb[[2]]$t_artifact)
     #####
   previousSample <- endsample[polls]
 }

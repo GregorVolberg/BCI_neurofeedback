@@ -36,39 +36,66 @@ boardinfo$pollnum       <- boardinfo$samplerate * boardinfo$blocksize
 return(boardinfo)
 }
 
-# poll2eeg <- function(poll, boardinfo){
-#   eeg <- data.frame(t(poll[c(boardinfo$eegchannels, boardinfo$markerchannel),])) %>%
-#     mutate(across(1:8, ~ .x - mean(.x, na.rm=T))) %>%
-#     setNames(boardinfo$channames)
+# plotEEG <- function(poll, boardinfo, polls, isArtifact = 0){
+#   plotcols <- c('blue', 'red')
+#   eeg <- data.frame(t(poll)) %>%
+#     setNames(c(boardinfo$channames, 'marker')) %>%
+#     ts(., frequency = boardinfo$samplerate, start = 0)
+#   plot(eeg, col = plotcols[isArtifact + 1],
+#        main = paste0('EEG, polling interval ', polls))
 # }
+# 
+# plotEEG <- function(EEGin, boardinfo, polls, isArtifact){
+#   eeg <- data.frame(t(EEGin)) %>%
+#     mutate(across(1:length(boardinfo$eegchannels), ~ .x - mean(.x, na.rm=T)),
+#            seq(0, boardinfo$pollnum/boardinfo$samplerate - 1/boardinfo$samplerate, 1/boardinfo$samplerate)) %>%
+#     setNames(c(boardinfo$channames, "Marker", "Time")) %>% 
+#     select(Time, boardinfo$channames[1]:Marker) %>%
+#     pivot_longer(boardinfo$channames[1]:Marker,
+#                  names_to = "Channel",
+#                  values_to = "microVolt") %>%
+#     mutate(Channel = factor(Channel, levels = c(boardinfo$channames, "Marker")), # for plotting order
+#            Artifact = factor(rep(c(isArtifact, 0),
+#                                  boardinfo$pollnum), levels = c(0,1))) 
+#   
+#   eegplot <- ggplot(eeg, aes(Time, microVolt, color = Artifact)) + 
+#     geom_line() +
+#     facet_wrap(~ Channel, , ncol = 1, strip.position = "left") +
+#     scale_color_manual(values = c("black", "red")) + 
+#     theme_classic() +
+#     theme(legend.position = "none",
+#           strip.background = element_blank()) +
+#     xlab(paste0("Time (s) at polling interval ", polls))
+#   
+#   print(eegplot)
+# }
+# 
 
-# pollcorr <- function(poll, boardinfo){
-#   pnew <- poll[1:boardinfo$eegchannels]
-#   ent <- apply(pnew,1, FUN = Entropy) # function entropy from DescTools
-#   kur <- apply(pnew,1, FUN = Kurt) # function entropy from DescTools
-#   ske <- apply(pnew,1, FUN = Skew) # function entropy from DescTools
-#   eeg <- poll[c(boardinfo$eegchannels, boardinfo$markerchannel),]
-#   numpy_data <- np$array(eeg[2,]) %>%
-#     mutate(across(1:8, ~ .x - mean(.x, na.rm=T))) %>%
-#     setNames(boardinfo$channames)
-# # see https://www.eneuro.org/content/7/2/ENEURO.0293-19.2020 for periodicity and also first comment in https://www.researchgate.net/post/Signal-periodicity-measurement-How-to-compare-the-periodicity-between-two-signals
-# }
-# 
-# makeTS <- function(poll, params, startsample = 0){
-#   eeg <- data.frame(t(poll[c(2:9, 24),])) %>%
-#     mutate(across(1:8, ~ .x - mean(.x, na.rm=T))) %>%
-#     setNames(params$channames) %>%
-#     ts(., frequency = 250, start = startsample)
-# }
-# 
-plotEEG <- function(poll, boardinfo, polls, isArtifact = 0){
-  plotcols <- c('blue', 'red')
-  eeg <- data.frame(t(poll)) %>%
-    setNames(c(boardinfo$channames, 'marker')) %>%
-    ts(., frequency = boardinfo$samplerate, start = 0)
-  plot(eeg, col = plotcols[isArtifact + 1],
-       main = paste0('EEG, polling interval ', polls))
+plotEEG <- function(poll, boardinfo, polls, isArtifact){
+  minmax  <- range(poll)
+  absdiff <- minmax[2] - minmax[1]
+  scaleF  <- floor(absdiff/10)*10
+  poll[9,] <- poll[9,] * 25 # increase value of marker channel for plotting
+  poll    <- poll + (dim(poll)[1]:1 * scaleF)
+  
+  if(polls < 30){ # let distribution build up
+  plotcols = rep('black',9)} else {
+  plotcols = rep('black',9)  
+  plotcols[isArtifact == 1] = 'red'}
+  
+  eeg <- data.frame(t(poll)) 
+  matplot(eeg, type='l', lty='solid',
+          xaxt = "n", yaxt = "n", bty="n",
+          ylab = "microVolt", 
+          xlab = paste0("Time (s) at polling interval ", polls),
+          col = plotcols)
+  axis(1, at = seq(1, boardinfo$pollnum, 50), labels = seq(0, 1, 0.2))
+  axis(2, at = 1:dim(poll)[1] * scaleF,
+       labels = rev(c(boardinfo$channames, "Mrk")),
+       col = NA)
 }
+
+
 
 demean <- function(poll){
   eegchan <- t(apply(poll[1:8,], 1, function(x) x - mean(x)))
@@ -79,5 +106,53 @@ lpfilt <- function(poll, boardinfo, lf = 40, forder = 6){
   coef <- butter(forder, lf / (boardinfo$samplerate/2), 'low')
   eegchan <- t(apply(poll[1:8,], 1, function(x) filter(coef, x)))
   pollback <- rbind(eegchan, poll[9,])
+}
+
+calc_EKS <- function(epoche) {
+  pnew <- epoche[1:length(boardinfo$eegchannels),] # remove marker channel
+  EKS <- cbind(apply(t(discretize(t(pnew), disc = "equalwidth", nbins = 100)),
+                     1, FUN = infotheo::entropy),
+               apply(pnew, 1, FUN = Kurt),
+               apply(pnew, 1, FUN = Skew))
+  return(unname(EKS))
+}
+
+f_prob_artifact <- function(epoche, dist_EKS, threshold) {
+  EKS      <- calc_EKS(epoche)
+  EKS[EKS[,2] < 0, 2] = 0 # use only positive excess kurtosis ('peakdness')
+  EKS[,3] = abs(EKS[,3])  # use positive and negative skewness
+  dist_EKS <- rbind(dist_EKS, EKS)
+  # normalize
+  norm_entropy  <- EKS[,1] / apply(matrix(dist_EKS[,1], 8), 1, FUN = max)
+  norm_kurtosis <- EKS[,2] / apply(matrix(dist_EKS[,2], 8), 1, FUN = max)
+  norm_skewness <- EKS[,3] / apply(matrix(dist_EKS[,3], 8), 1, FUN = max)
+  p_artifact    <- (norm_entropy + norm_kurtosis + abs(norm_skewness)) / 3
+  t_artifact    <- p_artifact > threshold
+  artfct <- data.frame(p_artifact, t_artifact)
+  return(list(dist_EKS, artfct))
+}
+
+
+f_prob_artifact2 <- function(epoche, dist_EKS, threshold, polls) {
+  EKS      <- calc_EKS(epoche)
+  EKS[EKS[,2] < 0, 2] = 0 # use only positive excess kurtosis ('peakdness')
+  EKS[,3] = abs(EKS[,3])  # use positive and negative skewness
+  dist_EKS <- rbind(dist_EKS, EKS)
+  # percentile
+  p_entropy  <- 1-(apply(matrix(dist_EKS[,1], 8) < EKS[,1], 1, sum) / polls)
+  p_kurtosis <- 1-(apply(matrix(dist_EKS[,2], 8) < EKS[,2], 1, sum) / polls)
+  p_skewness <- 1-(apply(matrix(dist_EKS[,3], 8) < EKS[,3], 1, sum) / polls)
+  p_artifact    <- (p_entropy + p_kurtosis + p_skewness) / 3
+  t_artifact    <- p_artifact > threshold
+  artfct <- data.frame(p_artifact, t_artifact)
+  return(list(dist_EKS, artfct))
+}
+
+prob_artifact_ft <- function(epoche, boardinfo, polls) {
+  # see https://www.fieldtriptoolbox.org/tutorial/automatic_artifact_rejection/
+  pnew <- epoche[1:length(boardinfo$eegchannels),] # remove marker channel
+  zeeg <- (pnew - mean(pnew)) / sd(pnew)
+  avgz = apply(zeeg, 1, mean)
+  return(avgz)
 }
 
