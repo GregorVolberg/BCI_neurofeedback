@@ -27,9 +27,9 @@ begsample <- NULL
 endsample <- NULL
 distAndProb <- list(dist_EKS  <- NULL,
                     artfct    <- NULL)
-artfct_thresh <- 0.999
-numWaitPolls  <- 0 # take first numWaitPolls for distribution
-relevantChannels = c(1:4)
+artfct_thresh <- 0.999 # for fprob 0.7
+numWaitPolls  <- 0 # take first numWaitPolls for distribution, for fprob 20
+relevantChannels = c(1:4) # only for ft
 
 while(polls < npolls){
   polls <- polls + 1
@@ -43,7 +43,7 @@ while(polls < npolls){
     eeg  <- poll[c(boardinfo$eegchannels, boardinfo$markerchannel),]
     eeg  <- demean(eeg)
     eeg <- lpfilt(eeg, boardinfo)
-    #distAndProb <- f_prob_artifact3(eeg, distAndProb[[1]], artfct_thresh,                                    polls, numWaitPolls)
+    #distAndProb <- f_prob_artifact(eeg, distAndProb[[1]], artfct_thresh,                                    polls, numWaitPolls)
     distAndProb <- prob_artifact_ft(eeg, boardinfo, polls,
                                     artfct_thresh, relevantChannels)
     print(round(distAndProb[[2]]$p_artifact, 3))

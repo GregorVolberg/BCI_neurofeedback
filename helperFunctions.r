@@ -117,38 +117,7 @@ calc_EKS <- function(epoche) {
   return(unname(EKS))
 }
 
-f_prob_artifact <- function(epoche, dist_EKS, threshold) {
-  EKS      <- calc_EKS(epoche)
-  EKS[EKS[,2] < 0, 2] = 0 # use only positive excess kurtosis ('peakdness')
-  EKS[,3] = abs(EKS[,3])  # use positive and negative skewness
-  dist_EKS <- rbind(dist_EKS, EKS)
-  # normalize
-  norm_entropy  <- EKS[,1] / apply(matrix(dist_EKS[,1], 8), 1, FUN = max)
-  norm_kurtosis <- EKS[,2] / apply(matrix(dist_EKS[,2], 8), 1, FUN = max)
-  norm_skewness <- EKS[,3] / apply(matrix(dist_EKS[,3], 8), 1, FUN = max)
-  p_artifact    <- (norm_entropy + norm_kurtosis + abs(norm_skewness)) / 3
-  t_artifact    <- p_artifact > threshold
-  artfct <- data.frame(p_artifact, t_artifact)
-  return(list(dist_EKS, artfct))
-}
-
-
-f_prob_artifact2 <- function(epoche, dist_EKS, threshold, polls) {
-  EKS      <- calc_EKS(epoche)
-  EKS[EKS[,2] < 0, 2] = 0 # use only positive excess kurtosis ('peakdness')
-  EKS[,3] = abs(EKS[,3])  # use positive and negative skewness
-  dist_EKS <- rbind(dist_EKS, EKS)
-  # percentile
-  p_entropy  <- 1-(apply(matrix(dist_EKS[,1], 8) < EKS[,1], 1, sum) / polls)
-  p_kurtosis <- 1-(apply(matrix(dist_EKS[,2], 8) < EKS[,2], 1, sum) / polls)
-  p_skewness <- 1-(apply(matrix(dist_EKS[,3], 8) < EKS[,3], 1, sum) / polls)
-  p_artifact    <- (p_entropy + p_kurtosis + p_skewness) / 3
-  t_artifact    <- p_artifact > threshold
-  artfct <- data.frame(p_artifact, t_artifact)
-  return(list(dist_EKS, artfct))
-}
-
-f_prob_artifact3 <- function(epoche, dist_EKS, threshold, polls, waitPolls) {
+f_prob_artifact <- function(epoche, dist_EKS, threshold, polls, waitPolls) {
   EKS      <- calc_EKS(epoche)
   EKS[EKS[,2] < 0, 2] = 0 # use only positive excess kurtosis ('peakdness')
   EKS[,3] = abs(EKS[,3])  # use positive and negative skewness
