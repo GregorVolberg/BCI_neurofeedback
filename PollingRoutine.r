@@ -22,12 +22,14 @@ myboard$start_stream()    # start stream
 previousSample <- myboard$get_board_data_count()
 invisible(myboard$get_board_data()) # empty buffer
 polls <- 0
-npolls <- 10 # 
+npolls <- 30 # 
 begsample <- NULL
 endsample <- NULL
 distAndProb <- list(dist_EKS  <- NULL,
                     artfct    <- NULL)
-artfct_thresh <- 0.8
+artfct_thresh <- 0.999
+numWaitPolls  <- 0 # take first numWaitPolls for distribution
+relevantChannels = c(1:4)
 
 while(polls < npolls){
   polls <- polls + 1
@@ -41,9 +43,12 @@ while(polls < npolls){
     eeg  <- poll[c(boardinfo$eegchannels, boardinfo$markerchannel),]
     eeg  <- demean(eeg)
     eeg <- lpfilt(eeg, boardinfo)
-    distAndProb <- f_prob_artifact2(eeg, distAndProb[[1]], artfct_thresh, polls)
+    #distAndProb <- f_prob_artifact3(eeg, distAndProb[[1]], artfct_thresh,                                    polls, numWaitPolls)
+    distAndProb <- prob_artifact_ft(eeg, boardinfo, polls,
+                                    artfct_thresh, relevantChannels)
     print(round(distAndProb[[2]]$p_artifact, 3))
-    plotEEG(eeg, boardinfo, polls, isArtifact = distAndProb[[2]]$t_artifact)
+    plotEEG(eeg, boardinfo, polls, 
+            isArtifact = distAndProb[[2]]$t_artifact, waitpolls = numWaitPolls)
     #####
   previousSample <- endsample[polls]
 }

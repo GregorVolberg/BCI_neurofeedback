@@ -71,14 +71,14 @@ return(boardinfo)
 # }
 # 
 
-plotEEG <- function(poll, boardinfo, polls, isArtifact){
+plotEEG <- function(poll, boardinfo, polls, isArtifact, waitpolls){
   minmax  <- range(poll)
   absdiff <- minmax[2] - minmax[1]
   scaleF  <- floor(absdiff/10)*10
   poll[9,] <- poll[9,] * 25 # increase value of marker channel for plotting
   poll    <- poll + (dim(poll)[1]:1 * scaleF)
   
-  if(polls < 30){ # let distribution build up
+  if(polls < waitpolls){ # let distribution build up
   plotcols = rep('black',9)} else {
   plotcols = rep('black',9)  
   plotcols[isArtifact == 1] = 'red'}
@@ -148,11 +148,36 @@ f_prob_artifact2 <- function(epoche, dist_EKS, threshold, polls) {
   return(list(dist_EKS, artfct))
 }
 
-prob_artifact_ft <- function(epoche, boardinfo, polls) {
+f_prob_artifact3 <- function(epoche, dist_EKS, threshold, polls, waitPolls) {
+  EKS      <- calc_EKS(epoche)
+  EKS[EKS[,2] < 0, 2] = 0 # use only positive excess kurtosis ('peakdness')
+  EKS[,3] = abs(EKS[,3])  # use positive and negative skewness
+  dist_EKS <- rbind(dist_EKS, EKS)
+  if (polls < waitPolls){
+    p_entropy  <- rep(0, 8)
+    p_kurtosis <- rep(0, 8)
+    p_skewness <- rep(0, 8)
+  } else {
+    maxEKS <- apply(dist_EKS, 2, max)
+    p_entropy  <- 1-(EKS[,1] / maxEKS[1])
+    p_kurtosis <- 1-(EKS[,2] / maxEKS[2])
+    p_skewness <- 1-(EKS[,3] / maxEKS[3])}
+  
+  p_artifact    <- (p_entropy + p_kurtosis + p_skewness) / 3
+  t_artifact    <- p_artifact > threshold
+
+  artfct <- data.frame(p_artifact, t_artifact)
+  return(list(dist_EKS, artfct))
+}
+
+prob_artifact_ft <- function(epoche, boardinfo, polls, threshold, relChan) {
   # see https://www.fieldtriptoolbox.org/tutorial/automatic_artifact_rejection/
   pnew <- epoche[1:length(boardinfo$eegchannels),] # remove marker channel
   zeeg <- (pnew - mean(pnew)) / sd(pnew)
-  avgz = apply(zeeg, 1, mean)
-  return(avgz)
+  avgz = apply(zeeg[relChan,], 2, mean)
+  p_artifact <- rep(max(pnorm(abs(avgz))), 8)
+  t_artifact <- p_artifact > threshold
+  artfct <- data.frame(p_artifact, t_artifact)
+  return(list(NA, artfct))
 }
 
