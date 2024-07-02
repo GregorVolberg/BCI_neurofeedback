@@ -21,7 +21,8 @@ eegdat <- read_delim('test_run_motor.csv',
     select(c(2:9)) %>%
     t()
 
-
+# functions
+# band pass filter
 bpfilt <- function(eegin, srate, lf, hf, forder){
   coef <- butter(forder, c(lf, hf) / srate, 'pass')
   eegout <- t(apply(eegin, 1, function(x) filtfilt(coef, x)))

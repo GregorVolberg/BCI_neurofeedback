@@ -9,7 +9,7 @@ motorImagery <- data.frame(name = c('C3','C4','Cz','CP3',
                                        "N6P", "N7P", "N8P",
                                        "SRB2(REF)", "BIAS(GND)"))
 neurofeedback <- data.frame(name = c("AF1", "AF2", "AFz", "Cz",
-                                     "F1",  "Fz",  "C1",  "Cz",
+                                     "F1",  "Fz",  "C1",  "C2",
                                      "Oz",  "Pz"),
                            easyCapNumber = numeric(10),
                            OpenBCI =  c("N1P", "N2P", "N3P", "N4P", "N5P", 
