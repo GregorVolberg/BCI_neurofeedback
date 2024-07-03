@@ -26,24 +26,6 @@ cnames <- data.frame(name = c("AF1", "AF2", "AFz", "Cz",
                       OpenBCI =  c("N1P", "N2P", "N3P", "N4P", "N5P", 
                                    "N6P", "N7P", "N8P",
                                    "SRB2(REF)", "BIAS(GND)"))
-# 
-# # functions: band pass filter
-# bpfilt <- function(eegin, srate, lf, hf, forder, padding){
-#   coef <- butter(forder, c(lf, hf) / srate, 'pass')
-#   padded <- cbind()
-#   matrix(rep(eegin[,1], padded), dim(eegin)[1])
-#   eegout <- t(apply(eegin, 1, function(x) filtfilt(coef, x)))
-# }
-# 
-# # Hilbert amplitude
-# hilbamp <- function(eegin){
-#   t(apply(eegin, 1, function(x) abs(hilbert(x))))
-# }
-
-# demean
-demean <- function(eegin){
-  t(apply(eegin, 1, function(x) x - mean(x)))
-}
 
 # set arguments, zb beta, theta
 lf1 <- 4
@@ -52,12 +34,14 @@ lf2 <- 13
 hf2 <- 30
 pollnum <- 256 # number of samples per poll
 srate   <- 250
-#forder <- 4
 secs    <- 30 # trial was 30 s long
 pickChannels <- c("AF1", "AF2", "Cz")
-                  
-# segment, demean, filter, average
 chanIndex <- which(cnames$name %in% pickChannels)
+
+# function demean
+demean <- function(eegin){
+  t(apply(eegin, 1, function(x) x - mean(x)))
+}
 
 # function for segmentation
 segmentation <- function(onst, cindex, eegin){
@@ -71,6 +55,11 @@ welchpsd <- function(eegin, srate){
   arr <- simplify2array(map(tmp, 'spec'))
   pwr <- apply(arr, 1, mean)
 }
+
+onsets = data.frame(concentrate = simplify(lapply(markers[[1]]$spoint,
+                            function (x) seq(x, x+secs*srate, by = pollnum))),
+                    relax = simplify(lapply(markers[[2]]$spoint,
+                            function (x) seq(x, x+secs*srate, by = pollnum))))
 
 seg  <- segmentation(onsets$relax, chanIndex, eeg)
 eegm <- lapply(seg, demean)
