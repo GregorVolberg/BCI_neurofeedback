@@ -113,37 +113,3 @@ pleft <- predict(myd, X_test=list(eegf1))$posterior[,'left']
 myboard$stop_stream()     # stop stream
 myboard$release_session() # end session
 
-# 
-# library(dbcsp)
-# mydbcsp <- new('dbcsp', X1=cspdata[[1]], X2=cspdata[[2]], q = 8, type='dtw',
-#                labels = c('left', 'right'))
-# summary(mydbcsp)
-# 
-# # built-in example
-# x1 <- AR.data$come
-# x2 <- AR.data$five
-# mydbcsp <- new('dbcsp', X1=x1, X2=x2, q=15, labels=c("C1", "C2"))
-# summary(mydbcsp)
-# selectQ(mydbcsp)
-# myd <- train(mydbcsp, selected_q = 2)
-# 
-# xt = x2[1:5]
-# predict(myd, X_test=xt)
-# 
-# 
-# 
-# # eeg 
-# 
-# # test
-# eegb  <- bpfilt(eegm, boardinfo, 8, 12)
-# eegh  <- bphilbert(eegm, boardinfo, 8, 12)
-# 
-# chan=6
-# plot(eegm[chan,], type='l')
-# lines(eegf[chan,], type='l', col='red')
-# lines(eegb[chan,], type='l', col='blue')
-# lines(eegh[chan,], type='l', col='green')
-# 
-# 
-# # for csp, two lists (k = 1, 2) with matrices cannel x Time points, i elements (trials) per list.
-# 
