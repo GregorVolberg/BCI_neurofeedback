@@ -46,7 +46,10 @@ params$serial_port <- "COM3"
 myboard             <- brainflow_python$BoardShim(Id, params) 
 
 x11()
+<<<<<<< HEAD
 hcol <- heat.colors(100)
+=======
+>>>>>>> a2e055d6ca45d2783c039193e8fcc7183f4b77d7
 
 myboard$release_all_sessions()
 myboard$prepare_session() # start session
@@ -81,6 +84,7 @@ barplot(feedback, space = 0.2,
         xlim = c(-0.5,2),
         ylim = c(0,3),
         col = hcol[round(feedback/3*100)],
+
         ylab = "Concentration")
 
 }
