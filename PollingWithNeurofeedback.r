@@ -12,19 +12,20 @@ cnames <- data.frame(name = c("AF1", "AF2", "AFz", "Cz",
                                   "SRB2(REF)", "BIAS(GND)"))
 
 # set arguments
-lf1 <- 4
-hf1 <- 7
-lf2 <- 13
-hf2 <- 30
+lf1 <- 12
+hf1 <- 15
+lf2 <- 15
+hf2 <- 18
 pollnum <- 256 # number of samples per poll
 srate   <- 250
-pickChannels <- c("AF1", "AF2", "Cz")
+pickChannels <- c("C1", "C2", "Fz")
 chanIndex <- which(cnames$name %in% pickChannels)
 freqScale <- pwelch(rnorm(pollnum),
                window = hanning(pollnum),
                fs = 250)$freq
 freq1indices <- which(freqScale > lf1 & freqScale < hf1)
 freq2indices <- which(freqScale > lf2 & freqScale < hf2)
+runMedian = 5
 
 # function for Welch PSD
 welchpsd <- function(eegin, srate){
@@ -39,54 +40,50 @@ demean <- function(eegin){
 }
 
 
-Id      <- brainflow_python$BoardIds$PLAYBACK_FILE_BOARD 
-params  <- brainflow_python$BrainFlowInputParams()   
-params$file         <- "scene_aff_visual_2024-05-07-103106.csv"
-params$master_board <- brainflow_python$BoardIds$CYTON_BOARD
+Id      <- brainflow_python$BoardIds$CYTON_BOARD 
+params  <- brainflow_python$BrainFlowInputParams()
+params$serial_port <- "COM3"
 myboard             <- brainflow_python$BoardShim(Id, params) 
+
+x11()
+hcol <- heat.colors(100)
 
 myboard$release_all_sessions()
 myboard$prepare_session() # start session
 myboard$start_stream()    # start stream
 
 ## polling 
-polls <- NULL
-NFmetric <- NULL
+polls <- 0
+NFmetric <- 0
 invisible(myboard$get_board_data()) # empty buffer
 
 while(TRUE){ # endless polling, close with ESC
   while (myboard$get_board_data_count() < pollnum) {
     Sys.sleep(0.02) # wait until buffer is filled
   }
-poll  <- myboard$get_board_data(as.integer(boardinfo$pollnum))
+poll  <- myboard$get_board_data(as.integer(pollnum))
 polls <- polls + 1
 eeg   <- poll[2:9, ]
-eegm  <- demean(eeg)
+eegm  <- demean(eeg[chanIndex,])
 eegf  <- welchpsd(eegm, srate = 250)
 powerEstimate <- simplify2array(eegf)
 
-f1pow <- apply(powerEstimateRelax[freq1indices,], 2, mean)
-f2pow <- apply(powerEstimateRelax[freq2indices,], 2, mean)
+f1pow <- mean(powerEstimate[freq1indices])
+f2pow <- mean(powerEstimate[freq2indices])
 
 NFmetric[polls] <- f1pow / f2pow
 if (polls < runMedian){
   feedback <- 0} else {
   feedback <- median(NFmetric[(polls-runMedian):polls])
-}
+  }
 
+barplot(feedback, space = 0.2,
+        xlim = c(-0.5,2),
+        ylim = c(0,3),
+        col = hcol[round(feedback/3*100)],
+        ylab = "Concentration")
+
+}
 myboard$stop_stream()     # stop stream
 myboard$release_session() # end session
 
-
-x11()
-testdat = round(runif(20)*100) # 20 random integers from 0 - 100
-hcol <- heat.colors(100) # from light yellow to red
-
-for (j in 1:length(testdat)){
-  Sys.sleep(1)
-  barplot(testdat[j], space = 0.2,
-          xlim = c(-0.5,2),
-          ylim = c(0,100),
-          col = hcol[testdat[j]],
-          ylab = "Concentration")
-}
